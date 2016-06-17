@@ -1,0 +1,9 @@
+.bii-front-select-language {
+    float: right;
+}
+.bii-select-flag{
+	display:inline-block;
+}
+#header #menu-header .bii-select-flag a{
+	padding: 8px;
+}
