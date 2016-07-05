@@ -2,12 +2,12 @@
 /*
   Plugin Name: bii_multilingual
   Description: Ajoute des fonctions multilingues
-  Version: 0.2
+  Version: 0.5
   Author: Biilink Agency
   Author URI: http://biilink.com/
   License: GPL2
  */
-define('bii_multilingual_version', '0.2');
+define('bii_multilingual_version', '0.5');
 define('bii_multilingual_path', plugin_dir_path(__FILE__));
 define('bii_multilingual_url', plugin_dir_url(__FILE__));
 
@@ -70,7 +70,7 @@ function bii_multilingual_default_language_admin_selection() {
 		if (strpos(get_option("bii_multilingual_languages"), $lang) !== false) {
 			$selected = "<span class='fa fa-check-square-o'></span>";
 		}
-		$ret .= "<span class='bii_select_languages ' data-value='$lang'>$selected <img src='".bii_multilingual_url. "flags/$lang.png' /> $libelle</span>";
+		$ret .= "<span class='bii_select_languages ' data-value='$lang'>$selected <img src='" . bii_multilingual_url . "flags/$lang.png' /> $libelle</span>";
 	}
 	$ret.="</span>";
 	$ret .= apply_filters("bii_multilingual_default_language_selection_admin_script", $ret);
@@ -119,21 +119,23 @@ function bii_multilingual_css_front() {
 
 function bii_multilingual_additionnal_js_var() {
 	global $wp_query;
-	if ($wp_query->query_vars["lang"]) {
+	if (isset($wp_query->query_vars["lang"])) {
 		echo "bii_lang = '" . $wp_query->query_vars["lang"] . "';";
 	}
-	if ($_REQUEST["lang"]) {
+	if (isset($_REQUEST["lang"])) {
 		echo "bii_lang = '" . $_REQUEST["lang"] . "';";
 	}
 	echo "bii_multilingual_activated = true;";
+//	
 //	echo "</script>";
-//	global $post;
-//	consoleDump($post);
+//	
+//	consoleLog(get_the_ID());
 //	echo "<script>";
 }
 
 function bii_multilingual_display_flag($lang) {
 	if (!get_option("bii_multilingual_$lang" . "_name")) {
+		$dl = bii_multilingual_available_languages();
 		update_option("bii_multilingual_$lang" . "_name", $dl[$lang]);
 	}
 	if (!get_option("bii_multilingual_$lang" . "_flag")) {
@@ -141,9 +143,9 @@ function bii_multilingual_display_flag($lang) {
 	}
 	$flag = get_option("bii_multilingual_$lang" . "_flag");
 	$alt = get_option("bii_multilingual_$lang" . "_name");
-	$url = apply_filters("bii_multilingual_real_baseurl", get_bloginfo("url"));
+	$url = apply_filters("bii_multilingual_real_baseurl", get_bloginfo("url"), $lang);
 	$contents = "<span class='bii-select-flag'>"
-		. "<a href='$url/?lang=$lang'>"
+		. "<a href='$url'>"
 		. "<img width='18' height='12' class='lazyquick' alt='$alt' src='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7' data-original='$flag' />"
 		. "</a>"
 		. "</span>";
@@ -160,12 +162,19 @@ function bii_multilingual_select_flags($val) {
 	return $output;
 }
 
-function bii_multilingual_real_baseurl($url) {
+function bii_multilingual_real_baseurl($url, $lang) {
 	$url = explode("?", $url);
-	return $url[0];
+	$nopoint = $url[0];
+//	$id = get_the_ID();
+//	$id_translation = icl_translations::get_translation_of($id,$lang);
+//	bii_write_log("[id_translation] ". $id_translation);
+//	if($id && $id_translation ){
+//		return get_post($id_translation)->guid;
+//	}
+	return $nopoint . "/?lang=$lang";
 }
 
-add_filter("bii_multilingual_real_baseurl", "bii_multilingual_real_baseurl");
+add_filter("bii_multilingual_real_baseurl", "bii_multilingual_real_baseurl", 10, 2);
 add_filter("bii_multilingual_display_flag", "bii_multilingual_display_flag");
 add_filter("bii_multilingual_select_flags", "bii_multilingual_select_flags");
 
@@ -185,6 +194,13 @@ function bii_multilingual_option_submit() {
 	}
 }
 
+function bii_multilingual_body_class($classes, $class) {
+	$id = get_the_ID();
+	$id_base_trad = icl_translations::get_trad_base_of($id);
+	$classes[] = "bii-traduit-de-" . $id_base_trad;
+	return $classes;
+}
+
 add_action("bii_options_submit", "bii_multilingual_option_submit", 5);
 
 add_action("bii_additionnal_js_var", "bii_multilingual_additionnal_js_var");
@@ -193,38 +209,53 @@ add_action('wp_enqueue_scripts', "bii_multilingual_css_front");
 add_action("bii_options_title", "bii_add_multilingual_option_title", 10);
 add_action("bii_options", "bii_add_multilingual_options");
 
+add_filter("body_class", "bii_multilingual_body_class");
+
 function bii_multilingual_current_language() {
 	$lang = 'fr';
 	global $wp_query;
-	if ($wp_query->query_vars["lang"]) {
+	if (isset($wp_query->query_vars["lang"])) {
 		$lang = $wp_query->query_vars["lang"];
 	}
-	if ($_REQUEST["lang"]) {
+	if (isset($_REQUEST["langchanged"])) {
+		$_REQUEST["lang"] = $_REQUEST["langchanged"];
+	}
+	if (isset($_REQUEST["lang"])) {
 		$lang = $_REQUEST["lang"];
 	}
 	return $lang;
 }
 
-function bii_multilingual_add_translation($search_term,$replace_term,&$bii_search,&$bii_replace){
+function bii_multilingual_add_translation($search_term, $replace_term, &$bii_search, &$bii_replace) {
 	$bii_search[] = $search_term;
 	$bii_replace[] = $replace_term;
 }
 
-function bii_multilingual_adaptative_text($attrs,$content){
+function bii_multilingual_adaptative_text($attrs, $content) {
 	$lang = bii_multilingual_current_language();
-	if(isset($attrs["lang"])){
+	if (isset($attrs["lang"])) {
 		$lang = $attrs["lang"];
 	}
 	return bii_multilingual_more_translation(__($content));
 }
-function bii_multilingual_list_shortcodes($attrs,$content){
+
+function bii_multilingual_list_shortcodes($attrs, $content) {
 	?><tr>
 		<td><strong>[bii_autotranslate lang="<?= bii_multilingual_current_language(); ?>"]</strong></td>
 		<td>Appelle la fonction de traduction du texte dans la lang choisie, par défaut lang correspond à la langue en cours du site</td>
 	</tr><?php
 }
 
-add_shortcode("bii_autotranslate","bii_multilingual_adaptative_text");
+function bii_multilingual_include_classes() {
+	require_once(bii_multilingual_path . "class/icl_translations.class.php");
+	if (strpos(get_permalink(), "/user-information/")) {
+		$_REQUEST["lang"] = "en";
+	}
+}
+
+add_action("bii_after_include_class", "bii_multilingual_include_classes", 11);
+
+add_shortcode("bii_autotranslate", "bii_multilingual_adaptative_text");
 
 add_action("bii_specific_shortcodes", "bii_multilingual_list_shortcodes");
 
@@ -233,14 +264,30 @@ function bii_multilingual_more_translation($text) {
 	$bii_replace = [];
 	$lang = bii_multilingual_current_language();
 	if ($lang == "fr") {
-		bii_multilingual_add_translation("Written by","Écrit par",$bii_search,$bii_replace);
-		bii_multilingual_add_translation("read more","plus",$bii_search,$bii_replace);
-		bii_multilingual_add_translation("Category","Catégorie ",$bii_search,$bii_replace);
-		bii_multilingual_add_translation("Search","Recherche ",$bii_search,$bii_replace);
+
+
+		include(bii_multilingual_path . "/translations/fr.php");
 	}
 	if ($lang == "en") {
-		bii_multilingual_add_translation("Rechercher","Search",$bii_search,$bii_replace);
-		bii_multilingual_add_translation("Votre Recherche","Search",$bii_search,$bii_replace);
+		bii_multilingual_add_translation("Rechercher", "Search", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Votre Recherche", "Search", $bii_search, $bii_replace);
+
+		bii_multilingual_add_translation("Abonnés", "Followers", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Catégories", "Categories", $bii_search, $bii_replace);
+
+		bii_multilingual_add_translation("Activité", "Activity", $bii_search, $bii_replace);
+
+		bii_multilingual_add_translation("Fil d’actualités", "Activity", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Membres", "Members", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Mon Profil", "My Account", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Ville", "City", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Code postal", "Zip code", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Pays", "Country", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Nom", "Last Name", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Prénom", "Surname", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Adresse", "Address", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Date d'inscription", "Registration date", $bii_search, $bii_replace);
+		bii_multilingual_add_translation("Statut en ligne", "Online status", $bii_search, $bii_replace);
 	}
 //	pre($bii_search);
 //	pre($bii_replace);
@@ -248,3 +295,148 @@ function bii_multilingual_more_translation($text) {
 }
 
 add_action("gettext", "bii_multilingual_more_translation");
+
+
+
+add_filter('wp_nav_menu_items', 'bii_nav_menu_items', 10, 2);
+
+function bii_nav_menu_items($items, $args) {
+//	logQueryVars();
+	// uncomment this to find your theme's menu location
+	//echo "args:<pre>"; print_r($args); echo "</pre>";
+	// get languages
+	$languages = apply_filters('wpml_active_languages', NULL, 'skip_missing=0');
+
+	// add $args->theme_location == 'primary-menu' in the conditional if we want to specify the menu location.
+
+	if ($languages && $args->theme_location == 'primary') {
+
+		if (!empty($languages)) {
+
+			foreach ($languages as $l) {
+				if (!$l['active']) {
+					// flag with native name
+					$items = $items . '<li class="menu-item"><a href="' . apply_filters("bii_multilingual_link_selector_translation",$l['url'],$l['language_code'] ) . '"><img data-original="' . $l['country_flag_url'] . '" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" height="12" alt="' . $l['language_code'] . '" width="18" class="lazyquick" /><span class="hidden-lg hidden-md"> ' . $l['native_name'] . '</span></a></li>';
+					//only flag
+					//$items = $items . '<li class="menu-item menu-item-language"><a href="' . $l['url'] . '"><img src="' . $l['country_flag_url'] . '" height="12" alt="' . $l['language_code'] . '" width="18" /></a></li>';
+				}
+			}
+		}
+	}
+
+	return $items;
+}
+
+function bii_multilingual_widget_titles($title) {
+//	$lang = bii_multilingual_current_language();
+	$return = __($title);
+	return $return;
+}
+
+add_filter('widget_title', "bii_multilingual_widget_titles");
+
+function bii_multilingual_link_traduction($link) {
+	$post_id = url_to_postid($link);
+	$trad_id = icl_object_id($post_id);
+	return get_permalink($trad_id);
+}
+
+add_filter('bii_trad_link', "bii_multilingual_link_traduction");
+
+function bii_multilingual_filter_um_localize_permalink($url) {
+	$lang = bii_multilingual_current_language();
+	$url = str_replace("?lang=$lang", "", $url);
+
+	if ($lang != "fr") {
+		$url .= "?langchanged=$lang";
+	}
+	return $url;
+}
+
+add_filter('bii_multilingual_filter_um_localize_permalink', "bii_multilingual_filter_um_localize_permalink", 10, 3);
+
+function bii_um_multilingual_fix_menu($nav_link) {
+	$lang = bii_multilingual_current_language();
+	$url = str_replace("?lang=$lang", "", $nav_link);
+
+	if ($lang != "fr") {
+		$url .= "&langchanged=$lang";
+	}
+	return $url;
+}
+
+function bii_um_multilingual_tabs($tabs) {
+//	pre($tabs);
+	$lang = bii_multilingual_current_language();
+	
+	if ($lang != "fr") {
+		foreach ($tabs as $tab) {
+			$tab["name"] = __($tab["name"]);
+		}
+	}
+	return $tabs;
+}
+
+function bii_um_multilingual_add_rewrite_rules($aRules) {
+	$aNewRules = array("^voir-un-utilisateur/([a-zA-Z0-9]*)/?lang=en" => "http://wonderwomenworld.com/user-information/([a-zA-Z0-9]*)/?lang=en");
+	$aRules = $aNewRules + $aRules;
+}
+
+function bii_multilingual_filter_date_i18n($j, $req_format, $i, $gmt) {
+	$lang = bii_multilingual_current_language();
+	if ($lang == "fr") {
+		if ($req_format == "F d, Y") {
+			$req_format = "d/m/Y";
+		}
+	}
+
+	return date($req_format, $i);
+}
+
+function bii_um_multilingual_label_title($label){
+	
+	return __($label);
+}
+
+function bii_multilingual_link_selector_translation($url,$lang){
+	global $wp_query;
+	if ($lang == "fr") {
+		$url = str_replace("?langchanged=en", "", $url);
+		$url = str_replace("?lang=en", "", $url);
+	}
+	
+	if ($lang == "en") {
+		if(strpos($url,"voir-un-utilisateur" ) !== false){
+			$permalink = get_permalink();
+			$user = "";
+			if(isset($wp_query->query_vars["um_user"])){
+				$user = $wp_query->query_vars["um_user"]."/";
+			}
+			$url = $permalink.$user."?langchanged=en";
+//			$url = $permalink.
+		}
+	}
+	return $url;
+}
+
+add_filter('date_i18n', 'bii_multilingual_filter_date_i18n', 10, 4);
+add_filter('bii_multilingual_link_selector_translation', 'bii_multilingual_link_selector_translation', 10, 2);
+if (get_option("bii_use_um")) {
+	add_filter("um_profile_menu_link_main", "bii_um_multilingual_fix_menu");
+	add_filter("um_profile_menu_link_activity", "bii_um_multilingual_fix_menu");
+	add_filter("um_profile_menu_link_posts", "bii_um_multilingual_fix_menu");
+	add_filter("um_profile_menu_link_comments", "bii_um_multilingual_fix_menu");
+	add_filter("um_profile_menu_link_messages", "bii_um_multilingual_fix_menu");
+
+	add_filter("um_user_profile_tabs", "bii_um_multilingual_tabs");
+	
+	add_filter("um_view_label_user_registered", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_online_status", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_first_name", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_last_name", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_country", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_bii_cover", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_adresse", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_code_postal", "bii_um_multilingual_label_title");
+	add_filter("um_view_label_ville", "bii_um_multilingual_label_title");
+}
