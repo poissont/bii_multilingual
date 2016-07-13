@@ -23,6 +23,7 @@ bii_multilingual_add_translation("Confirmer le Password", "Confirmer le mot de p
 
 bii_multilingual_add_translation("View profile", "Mon profil", $bii_search, $bii_replace);
 bii_multilingual_add_translation("Who is Online", "En ligne", $bii_search, $bii_replace);
+bii_multilingual_add_translation("You must login to view this user activity", "Vous devez être inscrit pour voir les publications de cet utilisateur", $bii_search, $bii_replace);
 // </editor-fold>
 // <editor-fold desc="Migla">
 bii_multilingual_add_translation("Donation Information", "Informations sur le don", $bii_search, $bii_replace);
@@ -40,6 +41,8 @@ bii_multilingual_add_translation("Custom Amount", "Montant personnalisé", $bii_
 bii_multilingual_add_translation("How much would you like to donate?", "Quelle somme souhaitez vous verser ?", $bii_search, $bii_replace);
 bii_multilingual_add_translation("Would you like to donate this to a specific campaign?", "A quelle campagne doit s'adresser votre don ?", $bii_search, $bii_replace);
 bii_multilingual_add_translation("Add to mailing list?", "S'inscrire à la newsletter ?", $bii_search, $bii_replace);
+
+bii_multilingual_add_translation("Please register to see this feature", "Vous devez être connecté pour voir ceci", $bii_search, $bii_replace);
 
 
 // </editor-fold>

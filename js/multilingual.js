@@ -1,7 +1,19 @@
 jQuery(function ($) {
 //	bii_CL("multilingual activé");
 //	bii_CL(bii_lang);
-
+	
+		jQuery(".bii_menu-item-language.menu-item-has-children").on("click", function () {
+//			bii_CL("enter");
+			$(this).addClass("open");
+			
+		});
+		jQuery("body").on("click", function (e) {
+			var target = e.target;
+			if(!$(target).parents(".bii_menu-item-language").length){
+				$(".bii_menu-item-language").removeClass("open");
+			}
+			
+		});
 
 	if (bii_lang == "fr") {
 		$(".meta-sep").text("le");
@@ -17,19 +29,17 @@ jQuery(function ($) {
 		jQuery(window).on("scroll load", function () {
 			biiaddsticky();
 		});
-		var closemenuitem = setTimeout(function(){});
+		var closemenuitem = setTimeout(function () {});
 		jQuery("#menu-item-970").on("mouseenter", function () {
 //			bii_CL("enter");
 			$(this).addClass("open");
 			window.clearTimeout(closemenuitem);
-			
 		});
 		jQuery("#menu-item-970").on("mouseleave", function () {
 //			bii_CL("leave");
 			closemenuitem = setTimeout(function () {
 				$(this).removeClass("open");
 			}, 1000);
-
 		});
 
 
@@ -73,8 +83,6 @@ jQuery(function ($) {
 			text = text.replaceAll("Proposer un projet", "Project registration");
 			text = text.replaceAll("Membres", "Members");
 			text = text.replaceAll("Se déconnecter", "Logout");
-			text = text.replace("data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "http://wonderwomenworld.com/wp-content/plugins/sitepress-multilingual-cms/res/flags/fr.png");
-			text = text.replace("English", "Français");
 			$(this).html(text);
 
 		});
@@ -92,7 +100,11 @@ jQuery(function ($) {
 			$(this).html(text);
 		});
 		if ($(".um-activity-head").length) {
-			$(".um-activity-head").html($(".um-activity-head").html().replace("Publications sur votre mur", "Post on your wall "));
+			$(".um-activity-head").each(function(){
+				$(this).html($(this).html().replace("Publications sur votre mur", "Post on your wall "));
+			});
+			
+			
 		}
 		if ($(".um-activity-post").length) {
 			$(".um-activity-post").html($(".um-activity-post").html().replace("Publier", "Publish"));
@@ -103,6 +115,14 @@ jQuery(function ($) {
 			$(".um-message-send").html($(".um-message-send").html().replace("Envoyer", "Send"));
 		}
 
+
+		$(".gtranslate-ul select option").each(function () {
+			var value = $(this).attr('value');
+
+			value = value.replace("fr", "en");
+
+			$(this).attr('value', value);
+		});
 	}
 
 	function bii_fix_query_string(link) {
